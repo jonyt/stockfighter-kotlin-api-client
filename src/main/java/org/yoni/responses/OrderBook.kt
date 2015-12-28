@@ -1,5 +1,6 @@
 package org.yoni.responses
 
+import org.yoni.responses.objects.Bid
 import java.time.LocalDateTime
 
 /**

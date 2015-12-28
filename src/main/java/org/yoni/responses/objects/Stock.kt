@@ -1,4 +1,4 @@
-package org.yoni.responses
+package org.yoni.responses.objects
 
 /**
  * Created by yoni on 25/12/15.

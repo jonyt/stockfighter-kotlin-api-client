@@ -1,4 +1,4 @@
-package org.yoni.responses
+package org.yoni.responses.objects
 
 import java.time.LocalDateTime
 

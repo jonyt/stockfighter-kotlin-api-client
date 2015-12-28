@@ -1,5 +1,7 @@
 package org.yoni.responses
 
+import org.yoni.responses.objects.Stock
+
 /**
  * Created by yoni on 25/12/15.
  */
