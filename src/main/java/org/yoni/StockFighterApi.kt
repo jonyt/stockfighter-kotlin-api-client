@@ -10,7 +10,7 @@ import org.yoni.responses.OrderBook
 import org.yoni.responses.Response
 import org.yoni.responses.StocksInVenue
 import java.lang.reflect.Type
-import java.time.LocalDateTime
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 /**
@@ -20,11 +20,15 @@ class StockFighterApi(apiKey: String, host: String = "https://api.stockfighter.i
     val apiKey = apiKey
     val basePath = "ob/api"
     val baseUrl = "$host:$port/$basePath"
+    val gson = Gson()
 
     init {
         val gsonBuilder = GsonBuilder()
-        gsonBuilder.registerTypeAdapter(LocalDateTime::class.java, LocalDateTimeDeserializer())
+        gsonBuilder.registerTypeAdapter(ZonedDateTime::class.java, ZonedDateTimeSerializer())
+        gsonBuilder.registerTypeAdapter(ZonedDateTime::class.java, ZonedDateTimeDeserializer())
         val gson = gsonBuilder.create()
+
+        println(gson.toJson(ZonedDateTime.now()))
 
         Unirest.setObjectMapper(object : ObjectMapper{
             override fun <T : Any?> readValue(json: String?, objectType: Class<T>?): T {
@@ -37,11 +41,19 @@ class StockFighterApi(apiKey: String, host: String = "https://api.stockfighter.i
         })
     }
 
-    private class LocalDateTimeDeserializer : JsonDeserializer<LocalDateTime>{
-        override fun deserialize(json: JsonElement?, type: Type?, context: JsonDeserializationContext?): LocalDateTime? {
-            return LocalDateTime.parse(json!!.getAsJsonPrimitive().getAsString(), DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+    private class ZonedDateTimeDeserializer : JsonDeserializer<ZonedDateTime> {
+        override fun deserialize(json: JsonElement?, type: Type?, context: JsonDeserializationContext?): ZonedDateTime? {
+            return if (json != null)
+                ZonedDateTime.parse(json.asString, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+            else
+                null
         }
+    }
 
+    private class ZonedDateTimeSerializer : JsonSerializer<ZonedDateTime> {
+        override fun serialize(dateTime: ZonedDateTime?, typeOfSrc: Type?, context: JsonSerializationContext?): JsonElement? {
+            return JsonPrimitive(dateTime?.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME))
+        }
     }
 
     fun heartbeat(): Response {
@@ -71,7 +83,7 @@ class StockFighterApi(apiKey: String, host: String = "https://api.stockfighter.i
     }
 
     fun order(account: String, venue: String, symbol: String, quantity: Int,
-              direction: String, orderType: String, price: Int = 0): Response {
+              direction: Order.Direction, orderType: Order.Type, price: Int = 0): Response {
 
         val order = Order(account, venue, symbol, quantity, direction, orderType, price)
         val response = Unirest.post("$baseUrl/venues/$venue/stocks/$symbol/orders").
@@ -88,7 +100,7 @@ class StockFighterApi(apiKey: String, host: String = "https://api.stockfighter.i
         return getResponse(response)
     }
 
-    private fun getResponse<T: BasicResponse>(response : HttpResponse<T>) : Response {
+    private fun <T: BasicResponse> getResponse(response : HttpResponse<T>) : Response {
         if (response.status == 200)
             return response.body
         else
